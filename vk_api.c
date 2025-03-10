@@ -2,6 +2,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <curl/curl.h>
+
+char *url_encode(const char *str)
+{
+    CURL *curl = curl_easy_init();
+    if (!curl)
+    {
+        fprintf(stderr, "Failed to initialize CURL\n");
+        return NULL;
+    }
+
+    char *encoded = curl_easy_escape(curl, str, 0);
+    if (!encoded)
+    {
+        fprintf(stderr, "Failed to encode string\n");
+        curl_easy_cleanup(curl);
+        return NULL;
+    }
+
+    curl_easy_cleanup(curl);
+    return encoded;
+}
 
 VKAPI *vk_api_init(const char *access_token, const char *api_version, void *context)
 {
@@ -41,8 +63,16 @@ cJSON *vk_api_call_method(VKAPI *api, const char *method, VKAPIParams *params)
     char url[1024];
 
     char *params_str = vk_api_params_to_string(params);
+    if (!params_str)
+    {
+        fprintf(stderr, "Failed to convert params to string\n");
+        return NULL;
+    }
+
     snprintf(url, sizeof(url), "%s%s?access_token=%s&v=%s&%s", VK_API_URL, method, api->access_token, api->api_version, params_str);
     free(params_str);
+
+    printf("Request URL: %s\n", url); // Вывод URL для отладки
 
     curl = curl_easy_init();
     if (curl)
@@ -142,10 +172,28 @@ cJSON *vk_api_long_poll_wait(LongPollServer *lp, int wait_time)
 int vk_api_send_message(VKAPI *api, int peer_id, const char *message)
 {
     VKAPIParams *params = vk_api_params_create();
+    if (!params)
+    {
+        fprintf(stderr, "Failed to create params\n");
+        return 0;
+    }
+
     char peer_id_str[16];
     snprintf(peer_id_str, sizeof(peer_id_str), "%d", peer_id);
     vk_api_params_add(params, "peer_id", peer_id_str);
-    vk_api_params_add(params, "message", message);
+
+    // Закодируем сообщение
+    char *encoded_message = url_encode(message);
+    if (!encoded_message)
+    {
+        fprintf(stderr, "Failed to encode message\n");
+        vk_api_params_free(params);
+        return 0;
+    }
+
+    vk_api_params_add(params, "message", encoded_message);
+    free(encoded_message); // Освобождаем закодированное сообщение
+
     char random_id_str[16];
     snprintf(random_id_str, sizeof(random_id_str), "%d", rand());
     vk_api_params_add(params, "random_id", random_id_str);
