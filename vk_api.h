@@ -1,3 +1,6 @@
+#ifndef VK_API_H
+#define VK_API_H
+
 #include <cjson/cJSON.h>
 #include <curl/curl.h>
 
@@ -40,3 +43,5 @@ VKAPIParams *vk_api_params_create();
 void vk_api_params_add(VKAPIParams *params, const char *key, const char *value);
 void vk_api_params_free(VKAPIParams *params);
 char *vk_api_params_to_string(VKAPIParams *params);
+
+#endif // VK_API_H
