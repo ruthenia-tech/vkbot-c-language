@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-VKAPI *vk_api_init(const char *access_token, const char *api_version)
+VKAPI *vk_api_init(const char *access_token, const char *api_version, void *context)
 {
     VKAPI *api = (VKAPI *)malloc(sizeof(VKAPI));
     api->access_token = strdup(access_token);
     api->api_version = strdup(api_version);
+    api->context = context;
     return api;
 }
 
@@ -169,7 +170,6 @@ int vk_api_send_message(VKAPI *api, int peer_id, const char *message)
     return 1;
 }
 
-// New functions for handling parameters
 VKAPIParams *vk_api_params_create()
 {
     VKAPIParams *params = (VKAPIParams *)malloc(sizeof(VKAPIParams));
